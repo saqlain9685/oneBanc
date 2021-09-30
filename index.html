@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<!-- Basic Metas -->
+	<title>One Banc - UPI</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<!-- Bootstrap CSS -->
+	<link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
+
+	<!-- Fontawesome -->
+	<link rel="stylesheet" type="text/css" href="assets/fontawesome/css/all.min.css">
+
+	<!-- Custom CSS -->
+	<style>
+	
+		.wrapper {
+			height: 100vh;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		.screen {
+			border: 1px solid black;
+			height: 90vh;
+		}
+		.top-bar {
+			padding: .5rem;
+			border-bottom: 1px solid black;
+			display: flex;
+			justify-content: flex-start;
+			align-items: center;
+
+		}
+		.txn {
+			width: 80%;
+			height: 80px;
+			border: 1px solid black;
+			margin: .5rem;
+		}
+		.txn .row {
+			padding: .5rem;
+			height: 100%;
+		}
+		.txn .row .col {
+			display: flex;
+			align-items: center;
+		}
+		.txn .row .col-lg-8 {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+		.txn .row .col-lg-8 .amount {
+			font-weight: bold;
+		}
+		.txn .row .col-lg-8 p {
+			font-size: smaller;
+		}
+		.mine{
+			float: right;
+		}
+		.not-mine {
+			float: left;
+		}
+	</style>
+</head>
+<body class = "body">
+
+	<main class="wrapper row">
+		<div class="col col-xs-12 col-sm-12 col-md-8 col-lg-4">
+			<div class="screen">
+				<div class="top-bar">
+					<i class="fas fa-user"></i> &nbsp;
+					<div id="recipient_name"></div>
+				</div>
+				<section id="transactions">
+					<!-- To be populated by js -->
+				</section>
+			</div>
+		</div>
+	</main>
+
+	<script src="assets/js/jquery.min.js"></script>
+	<script>
+		// Set dummy values
+		let user_id = 1;
+		let recipient_id = 2;
+
+		let endpoint = `https://dev.onebanc.ai/assignment.asmx/GetTransactionHistory?userId=
+					`+ user_id +`&recipientId=
+					`+ recipient_id +``;
+
+		// Ajax call to the url 
+		$.ajax({
+			url: endpoint,
+			method: "GET",
+			dataType: "json",
+			success: function (data) {
+				x = data;
+				let recipient_vpay_id = x['transactions'][0]['customer'].vPay;
+				$("#recipient_name").text(recipient_vpay_id);
+
+				let output = "";
+				for(let i = 0; i < x['transactions'].length; i++){
+					let txn = x['transactions'][i];
+
+					// determining weather payment is sent or received
+					var pay_direction = "";
+					if (txn.direction == "1") {
+						pay_direction = "mine";
+					}
+					else {
+						pay_direction = "not-mine";
+					}
+
+					// determining payment status
+					var pay_status = "";
+					var pay_icon = "";
+					switch (txn.status){
+						case 1: 
+							pay_status = "Pending";
+							pay_icon = "fa-clock text-warning";
+							break;
+						case 2: 
+							pay_status = "Confirm";
+							pay_icon = "fa-check-circle text-success";
+
+							break;
+						case 3:
+							pay_status = "Expired";
+							pay_icon = "fa-times";
+							break;
+						case 4: 
+							pay_status = "Reject";
+							break;
+						case 5: 
+							pay_status = "Cancel";
+							break;
+					}
+					
+
+					// formatting time_stamp
+					var full_stamp = txn['startDate'];
+					let hours = full_stamp.split(':')[1];
+					let mins = full_stamp.split(':')[2];
+
+					let time = hours+ ":" +mins;
+					let year = full_stamp.split("-")[0];
+					let month = full_stamp.split("-")[1];
+					let date = year+" "+month;
+
+					let time_stamp = time +" | "+ date;
+					// Generating markup for all txns 
+					output += `
+						<div class="mb-2 txn `+ pay_direction +`">
+							<div class="row">
+								<div class="col-lg-8 col">
+									<div class='amount'>	
+										<i class="fas fa-rupee-sign"></i> `+ txn['amount'] +`
+									</div>
+									<p>
+										Txn ID: `+ txn['id'] +`<br>
+										`+ time_stamp +`
+									</p>
+								</div>
+								<div class="col-lg-4 col p-1">
+									<i class='fas `+ pay_icon + `'></i>
+									`+ pay_status +`
+								</div>
+							</div>
+						</div>
+					`;
+				}
+				$("#transactions").html(output);
+			},
+			error: function () {
+				console.log("Err wd req");
+			}
+		});
+	</script>
+</body>
+</html>
